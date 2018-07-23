@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/ArgumentParser.hpp
+unordered_map
+-
+string
+-
+
+/home/pranav/C++/Stealth/SArgs/src/ArgumentParser.cpp
+ArgumentParser.hpp
+/home/pranav/C++/Stealth/SArgs/src/ArgumentParser.hpp
+iostream
+-
+

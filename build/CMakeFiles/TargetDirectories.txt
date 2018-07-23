@@ -1,0 +1,10 @@
+/home/pranav/C++/Stealth/SArgs/build/CMakeFiles/install/strip.dir
+/home/pranav/C++/Stealth/SArgs/build/CMakeFiles/install.dir
+/home/pranav/C++/Stealth/SArgs/build/CMakeFiles/list_install_components.dir
+/home/pranav/C++/Stealth/SArgs/build/CMakeFiles/sargs.dir
+/home/pranav/C++/Stealth/SArgs/build/CMakeFiles/uninstall.dir
+/home/pranav/C++/Stealth/SArgs/build/CMakeFiles/test0.dir
+/home/pranav/C++/Stealth/SArgs/build/CMakeFiles/install/local.dir
+/home/pranav/C++/Stealth/SArgs/build/CMakeFiles/test.dir
+/home/pranav/C++/Stealth/SArgs/build/CMakeFiles/edit_cache.dir
+/home/pranav/C++/Stealth/SArgs/build/CMakeFiles/rebuild_cache.dir

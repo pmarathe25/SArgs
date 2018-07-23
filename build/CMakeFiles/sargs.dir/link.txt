@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -flto -fno-fat-lto-objects  -shared -Wl,-soname,libsargs.so -o libsargs.so CMakeFiles/sargs.dir/src/ArgumentParser.cpp.o 
