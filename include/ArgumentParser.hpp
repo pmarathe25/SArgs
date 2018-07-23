@@ -26,7 +26,7 @@ namespace Stealth::Args {
             void addArgument(Args&&... args);
 
             const std::string mDescription;
-            std::string mExecName, mArgUsage, mArgDescriptions;
+            std::string mExecName, mPositionalArgUsage, mArgUsage, mPositionalArgDescriptions, mArgDescriptions;
             std::unordered_set<std::string> mOptionalArgs, mRequiredArgs;
             StringMap mShortNames;
             std::vector<std::string> mPositionalArgs;

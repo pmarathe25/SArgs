@@ -5,6 +5,7 @@ int main(int argc, char const *argv[]) {
     Stealth::Args::ArgumentParser parser{"Test executable"};
     // Add some arguments.
     parser.addArgument("-a", "--arg0", "Some argument");
+    parser.addArgument("--arg1", "Some other argument");
 
     // Add some positional arguments.
     parser.addPositionalArgument("message", "descr");
