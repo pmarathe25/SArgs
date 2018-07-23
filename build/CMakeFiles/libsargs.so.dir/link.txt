@@ -1,2 +1,0 @@
-/usr/bin/ar qc liblibsargs.so.a  CMakeFiles/libsargs.so.dir/src/ArgumentParser.cpp.o
-/usr/bin/ranlib liblibsargs.so.a
