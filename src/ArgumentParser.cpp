@@ -1,7 +1,16 @@
 #include "ArgumentParser.hpp"
 #include <iostream>
+#include <algorithm>
 
 namespace Stealth::Args {
+
+    namespace {
+        std::string& toUpper(std::string&& str) {
+            for (auto& c: str) c = toupper(c);
+            return str;
+        }
+    }
+
     ArgumentParser::ArgumentParser(std::string description) : mDescription(std::move(description)) { }
 
     ArgumentParser::StringMap ArgumentParser::parse(int argc, const char* argv[]) {
@@ -12,34 +21,29 @@ namespace Stealth::Args {
     ArgumentParser::StringMap& ArgumentParser::parse(int argc, const char* argv[], ArgumentParser::StringMap& args) {
         mExecName = std::string{argv[0]};
         // Check that there are enough arguments. Should be Executable + N positional + M (arg, value) pairs
-        // DEBUG:
-        std::cout << "Argc: " << argc << '\n';
-        std::cout << "Minimum: " << (1 + mPositionalArgs.size() + mRequiredArgs.size() * 2) << '\n';
-
         if (static_cast<size_t>(argc) < 1 + mPositionalArgs.size() + mRequiredArgs.size() * 2) exitPrint();
 
         int i{1};
         // First populate all the positional arguments.
-        for (; i <= static_cast<int>(mPositionalArgs.size()); ++i) {
-
-            // DEBUG:
-            std::cout << "Found positional argument: " << argv[i] << '\n';
-
-            args[mPositionalArgs[i - 1]] = argv[i];
-        }
+        for (; i <= static_cast<int>(mPositionalArgs.size()); ++i) args[mPositionalArgs[i - 1]] = argv[i];
         // Then do the non positional ones.
         for (; i < argc; i += 2) {
-
-            // DEBUG:
-            std::cout << "Found flag: " << argv[i] << '\n';
-
             // If this is an unrecognized argument, exit.
             if (not mRequiredArgs.count(argv[i]) and not mOptionalArgs.count(argv[i]) and not mShortNames.count(argv[i])) exitPrint();
             // If this is a short name, get the long name.
             std::string arg{(argv[i][1] == '-') ? argv[i] : mShortNames[argv[i]]};
+            // If this is a required argument, mark it as having been seen.
+            if (mRequiredArgs.count(arg)) mRequiredArgs[arg] = true;
             // Remove leading dashes.
             args[arg.substr(2)] = argv[i + 1];
         }
+        // If all required args are not found, do exitPrint.
+        bool requiredArgsFound = true;
+        for (auto [name, seen] : mRequiredArgs) {
+            requiredArgsFound &= seen;
+            if (not seen) std::cout << "[ERROR] Missing required argument: " << name << std::endl;
+        }
+        if (not requiredArgsFound) exitPrint();
         return args;
     }
 
@@ -49,25 +53,25 @@ namespace Stealth::Args {
         mPositionalArgDescriptions += '\t' + name + '\t' + description + "\n";
         // Positional arguments are always required.
         mPositionalArgs.emplace_back(name);
-        // DEBUG:
-        std::cout << "Adding positional arg: " << name << '\n';
     }
 
     void ArgumentParser::addArgument(const char* shortName, const char* name, const char* description, bool required) {
+        std::string strShortName{shortName}, strName{name}, strDescription{description};
         // Add help
-        mArgUsage += (required ? " " : " [") + std::string{shortName} + " " + std::string{name}.substr(2) + (required ? "" : "]");
-        mArgDescriptions += "  " + std::string{shortName} + '\t' + std::string{name} + '\t' + description + '\n';
+        mArgUsage += (required ? " " : " [") + strShortName + " " + toUpper(strName.substr(2)) + (required ? "" : "]");
+        mArgDescriptions += "  " + strShortName + '\t' + strName + '\t' + strDescription + '\n';
         // Add argument
-        (required) ? mRequiredArgs.emplace(name) : mOptionalArgs.emplace(name);
-        mShortNames.emplace(shortName, name);
+        if (required) mRequiredArgs.emplace(strName, false); else mOptionalArgs.emplace(strName);
+        mShortNames.emplace(strShortName, strName);
     }
 
     void ArgumentParser::addArgument(const char* name, const char* description, bool required) {
+        std::string strName{name}, strDescription{description};
         // Add help
-        mArgUsage += (required ? " " : " [") + std::string{name} + " " + std::string{name}.substr(2) + (required ? "" : "]");
-        mArgDescriptions += "  \t" + std::string{name} + '\t' + description + '\n';
+        mArgUsage += (required ? " " : " [") + strName + " " + toUpper(strName.substr(2)) + (required ? "" : "]");
+        mArgDescriptions += "  \t" + strName + '\t' + strDescription + '\n';
         // Add argument
-        (required) ? mRequiredArgs.emplace(name) : mOptionalArgs.emplace(name);
+        if (required) mRequiredArgs.emplace(strName, false); else mOptionalArgs.emplace(strName);
     }
 
     [[noreturn]] void ArgumentParser::exitPrint() const {

@@ -15,19 +15,21 @@ namespace Stealth::Args {
             StringMap parse(int argc, const char* argv[]);
             StringMap& parse(int argc, const char* argv[], StringMap& args);
             void addPositionalArgument(std::string name, std::string description = "");
+            // Note that because of the hack below, these must be const char*, and not std::string.
             void addArgument(const char* shortName, const char* name, const char* description, bool required = false);
             void addArgument(const char* name, const char* description, bool required = false);
             [[noreturn]] void exitPrint() const;
 
             const std::string& getExecutableName() const noexcept;
         private:
-            // Hack to prevent compiler from converting const char* to bool, thereby causing calls to the wrong overload.
+            // Hack to prevent compiler from converting std::string to bool, thereby causing calls to the wrong overload.
             template <typename... Args>
             void addArgument(Args&&... args);
 
             const std::string mDescription;
             std::string mExecName, mPositionalArgUsage, mArgUsage, mPositionalArgDescriptions, mArgDescriptions;
-            std::unordered_set<std::string> mOptionalArgs, mRequiredArgs;
+            std::unordered_set<std::string> mOptionalArgs;
+            std::unordered_map<std::string, bool> mRequiredArgs;
             StringMap mShortNames;
             std::vector<std::string> mPositionalArgs;
     };
