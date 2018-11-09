@@ -1,37 +1,33 @@
 #pragma once
+#include <Stealth/String>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <string>
 #include <utility>
 
 namespace Stealth::Args {
     class ArgumentParser {
         public:
-            // After parsing, store Args in a mapping of their full names -> contents.
-            using StringMap = std::unordered_map<std::string, std::string>;
+            ArgumentParser(Stealth::String description = "");
+            std::unordered_map<Stealth::String, Stealth::String> parse(int argc, const char* argv[]);
+            std::string_view addPositionalArgument(Stealth::String name, Stealth::String description);
 
-            ArgumentParser(std::string description = "");
-            StringMap parse(int argc, const char* argv[]);
-            StringMap& parse(int argc, const char* argv[], StringMap& args);
-            void addPositionalArgument(std::string name, std::string description = "");
-            // Note that because of the hack below, these must be const char*, and not std::string.
-            void addArgument(const char* shortName, const char* name, const char* description, bool required = false);
-            void addArgument(const char* name, const char* description, bool required = false);
+            std::string_view addArgument(Stealth::String shortName, Stealth::String name, Stealth::String description);
+            std::string_view addArgument(Stealth::String name, Stealth::String description);
+
+            std::string_view addRequiredArgument(Stealth::String shortName, Stealth::String name, Stealth::String description);
+            std::string_view addRequiredArgument(Stealth::String name, Stealth::String description);
+
             [[noreturn]] void exitPrint() const;
 
-            const std::string& getExecutableName() const noexcept;
+            const Stealth::String& getExecutableName() const noexcept;
         private:
-            // Hack to prevent compiler from converting std::string to bool, thereby causing calls to the wrong overload.
-            template <typename... Args>
-            void addArgument(Args&&... args);
-
-            const std::string mDescription;
-            std::string mExecName, mPositionalArgUsage, mArgUsage, mPositionalArgDescriptions, mArgDescriptions;
-            std::unordered_set<std::string> mOptionalArgs;
-            std::unordered_map<std::string, bool> mRequiredArgs;
-            StringMap mShortNames;
-            std::vector<std::string> mPositionalArgs;
+            Stealth::String mDescription, mExecName;
+            // Maps arg -> desciption.
+            std::vector<std::pair<Stealth::String, Stealth::String>> mPositionalArgs;
+            std::unordered_set<std::string_view> mRequiredArgs;
+            std::unordered_map<Stealth::String, Stealth::String> mArgs;
+            std::unordered_map<Stealth::String, std::string_view> mShortNames;
     };
 
 } /* Stealth::Args */

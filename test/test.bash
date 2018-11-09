@@ -1,11 +1,13 @@
 #!/bin/bash
-echo "./test0"
-./test0
-echo "./test0 mes --arg0 6"
-./test0 mes --arg0 6
-echo "./test0 mes -a 6"
-./test0 mes -a 6
-echo "./test0 mes --arg1 6"
-./test0 mes --arg1 6
-echo "./test0 mes -a 5ty --arg1 6"
-./test0 mes -a 5ty --arg1 6
+EXEC=build/test
+
+echo "${EXEC}"
+${EXEC}
+echo "${EXEC} mes --arg0 6"
+${EXEC} mes --arg0 6
+echo "${EXEC} mes -a 6"
+${EXEC} mes -a 6
+echo "${EXEC} mes --arg1 6"
+${EXEC} mes --arg1 6
+echo "${EXEC} mes -a 5ty --arg1 6"
+${EXEC} mes -a 5ty --arg1 6

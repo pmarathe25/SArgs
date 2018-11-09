@@ -3,84 +3,107 @@
 #include <algorithm>
 
 namespace Stealth::Args {
+    ArgumentParser::ArgumentParser(Stealth::String description) : mDescription(std::move(description)) { }
 
-    namespace {
-        std::string& toUpper(std::string&& str) {
-            for (auto& c: str) c = toupper(c);
-            return str;
+    std::unordered_map<Stealth::String, Stealth::String> ArgumentParser::parse(int argc, const char* argv[]) {
+        mExecName = Stealth::String{argv[0]};
+
+        std::unordered_map<Stealth::String, Stealth::String> arguments{};
+        int positionalIndex = 0;
+        int requiredArgsFound = 0;
+        // Parse!
+        for (int i = 1; i < argc; ++i) {
+            Stealth::String arg{argv[i]};
+            if (arg.startsWith("--") or arg.startsWith("-")) {
+                // Find the value of the argument. Supports both `--arg=value` and `--arg value` syntax.
+                Stealth::String value{};
+                size_t equalPos = arg.find("=");
+                if (equalPos != Stealth::String::npos) {
+                    value = arg.substr(equalPos);
+                } else {
+                    if (i + 1 >= argc) exitPrint();
+                    value = argv[++i];
+                }
+                // Add it to the map. Expand if it's a short name. Disallow duplicates.
+                arg = mShortNames.count(arg) ? mShortNames[arg] : arg;
+                if (mArgs.count(arg) and not arguments.count(arg)) {
+                    arguments[arg] = value;
+                    requiredArgsFound += mRequiredArgs.count(arg);
+                } else {
+                    exitPrint();
+                }
+            } else {
+                arguments[mPositionalArgs[positionalIndex++].first] = arg;
+            }
         }
+        // Validate.
+        if (requiredArgsFound != mRequiredArgs.size() or positionalIndex != mPositionalArgs.size()) {
+            exitPrint();
+        }
+        return arguments;
     }
 
-    ArgumentParser::ArgumentParser(std::string description) : mDescription(std::move(description)) { }
-
-    ArgumentParser::StringMap ArgumentParser::parse(int argc, const char* argv[]) {
-        ArgumentParser::StringMap args{};
-        return parse(argc, argv, args);
-    }
-
-    ArgumentParser::StringMap& ArgumentParser::parse(int argc, const char* argv[], ArgumentParser::StringMap& args) {
-        mExecName = std::string{argv[0]};
-        // Check that there are enough arguments. Should be Executable + N positional + M (arg, value) pairs
-        if (static_cast<size_t>(argc) < 1 + mPositionalArgs.size() + mRequiredArgs.size() * 2) exitPrint();
-
-        int i{1};
-        // First populate all the positional arguments.
-        for (; i <= static_cast<int>(mPositionalArgs.size()); ++i) args[mPositionalArgs[i - 1]] = argv[i];
-        // Then do the non positional ones.
-        for (; i < argc; i += 2) {
-            // If this is an unrecognized argument, exit.
-            if (not mRequiredArgs.count(argv[i]) and not mOptionalArgs.count(argv[i]) and not mShortNames.count(argv[i])) exitPrint();
-            // If this is a short name, get the long name.
-            std::string arg{(argv[i][1] == '-') ? argv[i] : mShortNames[argv[i]]};
-            // If this is a required argument, mark it as having been seen.
-            if (mRequiredArgs.count(arg)) mRequiredArgs[arg] = true;
-            // Remove leading dashes.
-            args[arg.substr(2)] = argv[i + 1];
-        }
-        // If all required args are not found, do exitPrint.
-        bool requiredArgsFound = true;
-        for (auto [name, seen] : mRequiredArgs) {
-            requiredArgsFound &= seen;
-            if (not seen) std::cout << "[ERROR] Missing required argument: " << name << std::endl;
-        }
-        if (not requiredArgsFound) exitPrint();
-        return args;
-    }
-
-    void ArgumentParser::addPositionalArgument(std::string name, std::string description) {
-        // Add help.
-        mPositionalArgUsage += " " + name;
-        mPositionalArgDescriptions += '\t' + name + '\t' + description + "\n";
+    std::string_view ArgumentParser::addPositionalArgument(Stealth::String name, Stealth::String description) {
         // Positional arguments are always required.
-        mPositionalArgs.emplace_back(name);
+        return mPositionalArgs.emplace_back(name, description).first;
     }
 
-    void ArgumentParser::addArgument(const char* shortName, const char* name, const char* description, bool required) {
-        std::string strShortName{shortName}, strName{name}, strDescription{description};
-        // Add help
-        mArgUsage += (required ? " " : " [") + strShortName + " " + toUpper(strName.substr(2)) + (required ? "" : "]");
-        mArgDescriptions += "  " + strShortName + '\t' + strName + '\t' + strDescription + '\n';
-        // Add argument
-        if (required) mRequiredArgs.emplace(strName, false); else mOptionalArgs.emplace(strName);
-        mShortNames.emplace(strShortName, strName);
+    std::string_view ArgumentParser::addArgument(Stealth::String shortName, Stealth::String name, Stealth::String description) {
+        std::string_view nameView = addArgument(name, description);
+        mShortNames[shortName] = nameView;
+        return nameView;
     }
 
-    void ArgumentParser::addArgument(const char* name, const char* description, bool required) {
-        std::string strName{name}, strDescription{description};
-        // Add help
-        mArgUsage += (required ? " " : " [") + strName + " " + toUpper(strName.substr(2)) + (required ? "" : "]");
-        mArgDescriptions += "  \t" + strName + '\t' + strDescription + '\n';
-        // Add argument
-        if (required) mRequiredArgs.emplace(strName, false); else mOptionalArgs.emplace(strName);
+    std::string_view ArgumentParser::addArgument(Stealth::String name, Stealth::String description) {
+        auto [inserted, success] = mArgs.insert(std::make_pair(name, description));
+        return inserted->first;
+    }
+
+    std::string_view ArgumentParser::addRequiredArgument(Stealth::String shortName, Stealth::String name, Stealth::String description) {
+        std::string_view nameView = addRequiredArgument(name, description);
+        mShortNames[shortName] = nameView;
+        mRequiredArgs.insert(nameView);
+        return nameView;
+    }
+
+    std::string_view ArgumentParser::addRequiredArgument(Stealth::String name, Stealth::String description) {
+        auto [inserted, success] = mArgs.insert(std::make_pair(name, description));
+        mRequiredArgs.insert(inserted->first);
+        return inserted->first;
     }
 
     [[noreturn]] void ArgumentParser::exitPrint() const {
-        std::cout << "Usage: " << mExecName << mPositionalArgUsage << mArgUsage
-            << "\nPositional Arguments:\n" << mPositionalArgDescriptions << "\nFlags:\n" << mArgDescriptions << std::endl;
+        Stealth::String positionalDescrs, requiredDescrs, optionalDescrs;
+        std::cout << mDescription << '\n'
+            << "Usage: " << mExecName;
+        for (const auto& [positional, descr] : mPositionalArgs) {
+            std::cout << " " << positional;
+            positionalDescrs += "\t" + positional + ": " + descr + "\n";
+        }
+        // Create an inverse mapping of required arg names to their short names.
+        std::unordered_map<std::string_view, Stealth::String> shortNames;
+        for (const auto& [shortName, full] : mShortNames) {
+            shortNames[full] = shortName;
+        }
+
+        for (const auto& [name, descr] : mArgs) {
+            if (mRequiredArgs.count(name)) {
+                std::cout << " [" << name << " " << name.toUpper().removePrefix("--") << "]";
+                requiredDescrs += "\t" + (shortNames.count(name) ? shortNames[name] : "") + "\t" + name + ": " + descr + "\n";
+            } else {
+                std::cout << " " << name << " " << name.toUpper().removePrefix("--");
+                optionalDescrs += "\t" + (shortNames.count(name) ? shortNames[name] : "") + "\t" + name + ": " + descr + "\n";
+            }
+        }
+        std::cout << "\n"
+            << (positionalDescrs.size() ? "\nPositional Args:\n" + positionalDescrs : "")
+            << (requiredDescrs.size() ? "\nRequired Args:\n" + requiredDescrs : "")
+            << (optionalDescrs.size() ? "\nOptional Args:\n" + optionalDescrs : "")
+            << std::flush;
         exit(1);
     }
 
-    const std::string& ArgumentParser::getExecutableName() const noexcept {
+    const Stealth::String& ArgumentParser::getExecutableName() const noexcept {
         return mExecName;
     }
 
